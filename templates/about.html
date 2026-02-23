@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Anketa — O anketě{% endblock %}
+
+{% block content %}
+<div class="about-body">
+  <h2>Co je tato anketa?</h2>
+  <p>
+    Jednoduchá jednokolová anketa, která se ptá na jediné: <em>kdy si dáváš první kafe dne?</em>
+    Vznikla jako školní projekt zaměřený na webový vývoj v Pythonu — konkrétně na framework Flask,
+    návrhové vzory (Strategy pattern) a nasazení na cloudovou platformu.
+  </p>
+  <p>
+    Každý návštěvník může hlasovat právě jednou. Výsledky jsou sdílené mezi všemi uživateli
+    a ukládají se na serveru — přetrvají restart stránky.
+  </p>
+
+  <h2>Jak anketa funguje?</h2>
+  <p>
+    Po kliknutí na tlačítko <strong>Hlasovat</strong> se tvůj hlas odešle na server přes HTTP POST.
+    Server hlas uloží do JSON souboru a zároveň nastaví cookie do tvého prohlížeče.
+    Díky cookie víme, že jsi už hlasoval(a), a příště ti místo formuláře ukážeme rovnou výsledky.
+  </p>
+  <p>
+    Výsledky si může kdykoli zobrazit i ten, kdo hlasovat nechce — stačí kliknout na
+    <strong>Výsledky</strong> v navigaci.
+  </p>
+
+  <h2>Nahlásit chybu</h2>
+  <p>Našel(a) jsi chybu — technickou, jazykovou nebo cokoli jiného? Dej nám vědět!</p>
+
+  <div class="bug-box">
+    <strong>📧 E-mailem (nejrychlejší)</strong>
+    Napiš na <a href="mailto:chyby@anketa-kafe.cz">chyby@anketa-kafe.cz</a> s předmětem
+    <em>„Chyba na stránce"</em>. Popiš co se stalo, na jaké stránce a co jsi čekal(a),
+    že se stane. Přilož screenshot pokud to jde.
+  </div>
+
+  <div class="bug-box" style="margin-top:.75rem">
+    <strong>🐛 GitHub Issues (pro technické chyby)</strong>
+    Pokud jsi vývojář, vytvoř issue na
+    <a href="https://github.com/tvuj-nick/poll-app/issues" target="_blank" rel="noopener">
+      github.com/tvuj-nick/poll-app
+    </a>.
+    Použij šablonu: <em>prostředí → kroky k reprodukci → očekávané chování → skutečné chování</em>.
+  </div>
+
+  <h2>Technické informace</h2>
+  <p>
+    Backend: Python 3 + Flask &nbsp;·&nbsp;
+    Šablony: Jinja2 &nbsp;·&nbsp;
+    Úložiště: JSON soubor na serveru &nbsp;·&nbsp;
+    Hosting: Render.com &nbsp;·&nbsp;
+    Ochrana proti vícenásobnému hlasování: HTTP cookie
+  </p>
+</div>
+{% endblock %}

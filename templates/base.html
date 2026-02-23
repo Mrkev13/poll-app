@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Anketa — Kdy si dáváš kafe?{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink:     #0f0e0c;
+      --cream:   #f5f0e8;
+      --espresso:#2c1a0e;
+      --caramel: #c07d3a;
+      --steam:   #e8dfd0;
+      --red:     #c0392b;
+      --green:   #1a6b3c;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2rem 1rem;
+      background-image:
+        radial-gradient(ellipse at 80% 10%, rgba(192,125,58,.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 10% 90%, rgba(44,26,14,.08) 0%, transparent 55%);
+    }
+
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: #fff;
+      border: 2px solid var(--ink);
+      box-shadow: 8px 8px 0 var(--ink);
+      overflow: hidden;
+      animation: slideUp .45s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform: translateY(24px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .card-header {
+      background: var(--espresso);
+      color: var(--cream);
+      padding: 2rem 2.5rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-header::before {
+      content: '☕';
+      position: absolute;
+      right: 1.5rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 5rem;
+      opacity: .12;
+      pointer-events: none;
+    }
+    .kicker {
+      font-size: .7rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--caramel);
+      margin-bottom: .6rem;
+    }
+    .question {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    /* Nav */
+    .nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--ink);
+    }
+    .nav a {
+      padding: .6rem 1.2rem;
+      font-size: .75rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--ink);
+      border-right: 1px solid var(--steam);
+      transition: background .15s;
+    }
+    .nav a:hover { background: var(--cream); }
+    .nav a.active { background: var(--caramel); color: #fff; }
+
+    .card-body { padding: 2rem 2.5rem; }
+
+    .flash { padding: .8rem 1.2rem; margin-bottom: 1.5rem; font-size: .85rem; border-left: 4px solid; }
+    .flash.success { border-color: var(--green); background: #e8f5ee; color: var(--green); }
+    .flash.error   { border-color: var(--red);   background: #fdf0ef; color: var(--red);   }
+    .flash.info    { border-color: var(--caramel); background: #fef9f4; color: #7a4d1d; }
+
+    .options { display: flex; flex-direction: column; gap: .75rem; }
+
+    .option-label {
+      display: flex; align-items: center; gap: 1rem;
+      padding: .9rem 1.2rem;
+      border: 2px solid var(--steam);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .option-label:hover { border-color: var(--caramel); background: var(--cream); }
+    .option-label input[type=radio] { display: none; }
+    .option-label input[type=radio]:checked + .option-letter { background: var(--espresso); color: var(--cream); }
+    .option-label:has(input:checked) { border-color: var(--espresso); background: var(--cream); }
+
+    .result-row {
+      display: flex; flex-direction: column; gap: .3rem;
+      padding: .9rem 1.2rem;
+      border: 2px solid var(--steam);
+    }
+    .result-row.voted-option { border-color: var(--caramel); background: #fef9f4; }
+    .result-top { display: flex; align-items: center; gap: 1rem; }
+    .result-bar-wrap { flex: 1; height: 6px; background: var(--steam); }
+    .result-bar { height: 100%; background: var(--caramel); transition: width .6s cubic-bezier(.16,1,.3,1); }
+    .result-counts { font-size: .75rem; color: #888; margin-top: .15rem; margin-left: 2.8rem; }
+
+    .option-letter {
+      width: 2rem; height: 2rem;
+      background: var(--steam);
+      display: grid; place-items: center;
+      font-weight: 500; font-size: .85rem;
+      flex-shrink: 0;
+      transition: background .15s, color .15s;
+    }
+    .option-text { font-size: .9rem; flex: 1; }
+
+    .btn {
+      display: inline-block;
+      padding: .75rem 1.6rem;
+      font-family: 'DM Mono', monospace;
+      font-size: .85rem; font-weight: 500;
+      cursor: pointer;
+      border: 2px solid var(--ink);
+      transition: transform .1s, box-shadow .1s;
+      text-decoration: none;
+    }
+    .btn:active { transform: translate(2px,2px); box-shadow: none !important; }
+    .btn-primary { background: var(--espresso); color: var(--cream); box-shadow: 3px 3px 0 var(--ink); }
+    .btn-primary:hover { box-shadow: 5px 5px 0 var(--ink); }
+    .btn-outline { background: transparent; color: var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+    .btn-outline:hover { background: var(--cream); box-shadow: 5px 5px 0 var(--ink); }
+    .btn-danger  { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 3px 3px 0 #7b1c14; }
+    .btn-danger:hover { box-shadow: 5px 5px 0 #7b1c14; }
+
+    .actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .divider { border: none; border-top: 1px dashed var(--steam); margin: 2rem 0; }
+
+    .reset-section details summary {
+      font-size: .8rem; letter-spacing: .1em;
+      text-transform: uppercase; color: #999;
+      cursor: pointer; user-select: none;
+    }
+    .reset-section details summary:hover { color: var(--red); }
+    .reset-form { display: flex; gap: .75rem; margin-top: 1rem; flex-wrap: wrap; align-items: center; }
+    .reset-form input {
+      flex: 1; min-width: 180px;
+      padding: .65rem 1rem;
+      font-family: 'DM Mono', monospace; font-size: .85rem;
+      border: 2px solid var(--steam); outline: none; background: var(--cream);
+    }
+    .reset-form input:focus { border-color: var(--red); }
+
+    .total { font-size: .75rem; color: #aaa; text-align: right; margin-top: 1rem; }
+
+    /* About page */
+    .about-body { line-height: 1.8; }
+    .about-body h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem; font-weight: 900;
+      margin: 1.5rem 0 .5rem;
+    }
+    .about-body h2:first-child { margin-top: 0; }
+    .about-body p { font-size: .9rem; color: #444; margin-bottom: .75rem; }
+    .about-body a { color: var(--caramel); }
+    .about-body .bug-box {
+      background: var(--cream);
+      border: 2px solid var(--steam);
+      padding: 1.2rem 1.5rem;
+      margin-top: .5rem;
+      font-size: .85rem;
+    }
+    .about-body .bug-box strong { display: block; margin-bottom: .4rem; color: var(--espresso); }
+  </style>
+</head>
+<body>
+<main class="card">
+  <header class="card-header">
+    <p class="kicker">Anketa dne</p>
+    <h1 class="question">Kdy si dáváš první kafe dne?</h1>
+  </header>
+
+  <nav class="nav">
+    <a href="{{ url_for('index') }}" {% if active == 'index' %}class="active"{% endif %}>Hlasovat</a>
+    <a href="{{ url_for('results') }}" {% if active == 'results' %}class="active"{% endif %}>Výsledky</a>
+    <a href="{{ url_for('about') }}" {% if active == 'about' %}class="active"{% endif %}>O anketě</a>
+  </nav>
+
+  <div class="card-body">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</main>
+</body>
+</html>

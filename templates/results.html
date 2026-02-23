@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Anketa — Výsledky{% endblock %}
+
+{% block content %}
+<div class="options">
+  {% for opt in poll.options %}
+    {% set count = votes[opt.id] %}
+    {% set pct = (count / total * 100) | round(1) if total > 0 else 0 %}
+    <div class="result-row">
+      <div class="result-top">
+        <span class="option-letter">{{ opt.label }}</span>
+        <span class="option-text">{{ opt.text }}</span>
+        <span style="font-size:.85rem;font-weight:500;min-width:3.5rem;text-align:right">{{ pct }}%</span>
+      </div>
+      <div class="result-bar-wrap">
+        <div class="result-bar" style="width:{{ pct }}%"></div>
+      </div>
+      <div class="result-counts">{{ count }} hlasů</div>
+    </div>
+  {% endfor %}
+</div>
+<p class="total">Celkem hlasů: {{ total }}</p>
+
+<div class="actions">
+  <a href="{{ url_for('index') }}" class="btn btn-outline">← Zpět na anketu</a>
+</div>
+
+<hr class="divider">
+<div class="reset-section">
+  <details>
+    <summary>Správa ankety — reset hlasování</summary>
+    <form action="{{ url_for('reset') }}" method="post" class="reset-form">
+      <input type="password" name="token" placeholder="Zadej reset token…" autocomplete="off">
+      <button type="submit" class="btn btn-danger">Resetovat</button>
+    </form>
+  </details>
+</div>
+{% endblock %}
