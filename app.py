@@ -104,6 +104,14 @@ def about():
     return render_template("about.html", active="about")
 
 
+@app.route("/restart")
+def restart():
+    # Získáme token přímo z instance auth strategie
+    # V reálné produkci bychom toto nedělali (security risk), ale pro účely dema/testování:
+    current_token = auth._token if hasattr(auth, "_token") else ""
+    return render_template("restart.html", token=current_token, active="restart")
+
+
 @app.route("/reset", methods=["POST"])
 def reset():
     token = request.form.get("token", "")

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Restart{% endblock %}
+
+{% block content %}
+<h2>Restart hlasování</h2>
+<p>Zde můžete resetovat celou anketu. Token je předvyplněn.</p>
+
+<div class="reset-section">
+  <form action="{{ url_for('reset') }}" method="post" class="reset-form">
+    <div style="margin-bottom: 1rem;">
+      <label for="token">Token:</label>
+      <input type="text" id="token" name="token" value="{{ token }}" readonly style="width: 100%; padding: 0.5rem;">
+    </div>
+    <button type="submit" class="btn btn-danger">Resetovat anketu</button>
+  </form>
+</div>
+
+<div class="actions" style="margin-top: 2rem;">
+  <a href="{{ url_for('index') }}" class="btn btn-outline">← Zpět na anketu</a>
+</div>
+{% endblock %}
