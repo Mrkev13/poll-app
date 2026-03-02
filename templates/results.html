@@ -2,6 +2,14 @@
 {% block title %}Anketa — Výsledky{% endblock %}
 
 {% block content %}
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-45JT7M6K01"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-45JT7M6K01');
+</script>
 <div class="options">
   {% for opt in poll.options %}
     {% set count = votes[opt.id] %}
@@ -13,7 +21,7 @@
         <span style="font-size:.85rem;font-weight:500;min-width:3.5rem;text-align:right">{{ pct }}%</span>
       </div>
       <div class="result-bar-wrap">
-        <div class="result-bar" style="width:{{ pct }}%"></div>
+        <div class="result-bar"></div>
       </div>
       <div class="result-counts">{{ count }} hlasů</div>
     </div>

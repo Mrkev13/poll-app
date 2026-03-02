@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Admin panel{% endblock %}
+
+{% block content %}
+<style>
+  .sec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap:1rem; margin-bottom:2rem; }
+  .stat-box { border:2px solid var(--steam); padding:1rem; text-align:center; }
+  .stat-box .num { font-family:'Playfair Display',serif; font-size:2rem; font-weight:900; }
+  .stat-box .num.red { color:var(--red); }
+  .stat-box .lbl { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:#999; }
+
+  .section-title { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:900;
+                   margin:1.5rem 0 .75rem; padding-bottom:.4rem; border-bottom:2px solid var(--steam); }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+  @media(max-width:500px){ .two-col { grid-template-columns:1fr; } }
+  .mini-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+  .mini-table td { padding:.35rem .5rem; border-bottom:1px solid var(--steam); }
+  .mini-table td:last-child { text-align:right; font-weight:500; color:var(--caramel); }
+
+  table.log { width:100%; border-collapse:collapse; font-size:.78rem; }
+  table.log th { background:var(--espresso); color:var(--cream); padding:.5rem .75rem; text-align:left; }
+  table.log td { padding:.45rem .75rem; border-bottom:1px solid var(--steam); vertical-align:top; word-break:break-all; }
+  table.log tr.sus { background:#fff5f5; }
+  table.log tr:hover td { background:var(--cream); }
+
+  .badge { display:inline-block; padding:.15rem .5rem; font-size:.7rem; margin:.1rem; }
+  .badge-red { background:#fde8e8; color:var(--red); border:1px solid #f5c0c0; }
+  .badge-ok  { background:#e8f5ee; color:var(--green); border:1px solid #b0dfc0; }
+
+  .login-form { max-width:380px; }
+  .login-form input {
+    width:100%; padding:.7rem 1rem; margin-bottom:.75rem;
+    font-family:'DM Mono',monospace; font-size:.9rem;
+    border:2px solid var(--steam); background:var(--cream); outline:none;
+  }
+  .login-form input:focus { border-color:var(--caramel); }
+
+  .danger-zone { border:2px solid var(--red); padding:1.2rem 1.5rem; margin-bottom:1.5rem; }
+  .danger-zone h3 { color:var(--red); font-size:.85rem; letter-spacing:.1em;
+                    text-transform:uppercase; margin-bottom:.6rem; }
+</style>
+
+<h2 class="section-title" style="margin-top:0">🔐 Admin panel</h2>
+
+{% if not authorized %}
+  {# ── LOGIN ── #}
+  <p style="font-size:.85rem;color:#666;margin-bottom:1.2rem">
+    Přihlaš se reset tokenem pro přístup k admin funkcím.
+  </p>
+  <form method="post" class="login-form">
+    <input type="hidden" name="action" value="login">
+    <input type="password" name="token" placeholder="Reset token…" autofocus autocomplete="off">
+    <button type="submit" class="btn btn-primary" style="width:100%">Přihlásit se →</button>
+  </form>
+
+{% else %}
+  {# ── ADMIN PANEL ── #}
+
+  {# Odhlášení #}
+  <form method="post" style="margin-bottom:1.5rem">
+    <input type="hidden" name="action" value="logout">
+    <button type="submit" class="btn btn-outline" style="font-size:.75rem;padding:.4rem 1rem">
+      Odhlásit se
+    </button>
+  </form>
+
+  {# Reset hlasů #}
+  <div class="danger-zone">
+    <h3>⚠️ Nebezpečná zóna — reset hlasování</h3>
+    <p style="font-size:.82rem;color:#666;margin-bottom:.75rem">
+      Tato akce smaže všechny hlasy. Nelze vrátit zpět.
+    </p>
+    <form method="post" onsubmit="return confirm('Opravdu chceš smazat všechny hlasy?')">
+      <input type="hidden" name="action" value="reset">
+      <button type="submit" class="btn btn-danger">Resetovat hlasy</button>
+    </form>
+  </div>
+
+  {# Aktuální výsledky #}
+  <div class="section-title">📊 Aktuální výsledky</div>
+  <div style="margin-bottom:1.5rem">
+    {% for opt in poll.options %}
+      {% set count = votes[opt.id] %}
+      {% set pct = (count / total * 100) | round(1) if total > 0 else 0 %}
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.5rem;font-size:.85rem">
+        <span style="width:1.8rem;height:1.8rem;background:var(--steam);display:grid;place-items:center;flex-shrink:0">{{ opt.label }}</span>
+        <span style="flex:1">{{ opt.text }}</span>
+        <span style="min-width:2.5rem;text-align:right">{{ count }}×</span>
+        <span style="min-width:3.5rem;text-align:right;color:var(--caramel)">{{ pct }}%</span>
+      </div>
+    {% endfor %}
+    <p style="font-size:.75rem;color:#aaa;text-align:right;margin-top:.5rem">Celkem: {{ total }} hlasů</p>
+  </div>
+
+  {# Security statistiky #}
+  <div class="section-title">🛡️ Security přehled</div>
+  <div class="sec-grid">
+    <div class="stat-box">
+      <div class="num">{{ stats.total }}</div>
+      <div class="lbl">Celkem requestů</div>
+    </div>
+    <div class="stat-box">
+      <div class="num red">{{ stats.suspicious }}</div>
+      <div class="lbl">Podezřelých</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">{{ stats.top_ips | length }}</div>
+      <div class="lbl">Unikátních IP</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="section-title" style="font-size:.9rem">Top IP adresy</div>
+      <table class="mini-table">
+        {% for ip, count in stats.top_ips %}
+        <tr><td>{{ ip }}</td><td>{{ count }}×</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    <div>
+      <div class="section-title" style="font-size:.9rem">Detekované anomálie</div>
+      <table class="mini-table">
+        {% if stats.top_anomalies %}
+          {% for anom, count in stats.top_anomalies %}
+          <tr><td>{{ anom }}</td><td>{{ count }}×</td></tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="2" style="color:#aaa">Žádné anomálie</td></tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  {# Log tabulka #}
+  <div class="section-title">📋 Posledních {{ logs|length }} requestů</div>
+  <div style="overflow-x:auto">
+    <table class="log">
+      <thead>
+        <tr>
+          <th>Čas (UTC)</th><th>IP</th><th>Metoda / Cesta</th>
+          <th>Status</th><th>User-Agent</th><th>Anomálie</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in logs %}
+        <tr {% if r.suspicious %}class="sus"{% endif %}>
+          <td style="white-space:nowrap">{{ r.ts[11:19] }}<br>
+            <span style="color:#aaa;font-size:.7rem">{{ r.ts[:10] }}</span></td>
+          <td>{{ r.ip }}</td>
+          <td><strong>{{ r.method }}</strong> {{ r.path }}</td>
+          <td><span class="badge {% if r.status < 400 %}badge-ok{% else %}badge-red{% endif %}">{{ r.status }}</span></td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="{{ r.ua }}">{{ r.ua[:55] }}{% if r.ua|length > 55 %}…{% endif %}</td>
+          <td>
+            {% for a in r.anomalies %}<span class="badge badge-red">{{ a }}</span>{% endfor %}
+            {% if not r.anomalies %}<span class="badge badge-ok">ok</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+{% endblock %}

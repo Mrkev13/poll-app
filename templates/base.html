@@ -4,7 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Anketa — Kdy si dáváš kafe?{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-45JT7M6K01"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-45JT7M6K01');
+  </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -195,15 +204,6 @@
     .about-body .bug-box strong { display: block; margin-bottom: .4rem; color: var(--espresso); }
   </style>
 </head>
-
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-45JT7M6K01"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-45JT7M6K01');
-</script>
 <body>
 <main class="card">
   <header class="card-header">
@@ -215,6 +215,7 @@
     <a href="{{ url_for('index') }}" {% if active == 'index' %}class="active"{% endif %}>Hlasovat</a>
     <a href="{{ url_for('results') }}" {% if active == 'results' %}class="active"{% endif %}>Výsledky</a>
     <a href="{{ url_for('about') }}" {% if active == 'about' %}class="active"{% endif %}>O anketě</a>
+    <a href="{{ url_for('admin') }}" {% if active == 'admin' %}class="active"{% endif %}>Admin</a>
   </nav>
 
   <div class="card-body">

@@ -4,6 +4,14 @@
 {% block content %}
 
 {% if already_voted %}
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-45JT7M6K01"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-45JT7M6K01');
+</script>
   <div class="flash info">☕ Už jsi hlasoval(a). Tady jsou aktuální výsledky:</div>
 {% endif %}
 

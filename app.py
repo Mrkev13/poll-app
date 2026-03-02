@@ -1,21 +1,20 @@
 """
 app.py — Flask webová aplikace ankety
 
-Propojuje Storage Strategy, Auth Strategy a Poll model.
-Routes jsou tenké — logika je v strategiích.
-
 Principy:
   KISS  – routes dělají jen HTTP orchestraci
-  DRY   – get_votes() a render_results() jsou sdílené helpery
-  YAGNI – žádné sessions, žádné OAuth, jen to co zadání vyžaduje
+  DRY   – get_votes(), total_votes(), has_voted() jako sdílené helpery
+  YAGNI – jen co zadání vyžaduje
 """
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, make_response
+from flask import (Flask, render_template, request,
+                   redirect, url_for, flash, make_response, session)
 
 from poll import POLL
 from storage import FileStorage
 from auth import TokenAuthStrategy
+from security_log import log_request, load_logs, get_stats
 
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
@@ -23,17 +22,34 @@ TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.secret_key = os.environ.get("SECRET_KEY", "poll-secret-key-2024")
 
-# ── Dependency Injection strategií ───────────────────────────────────────────
 storage = FileStorage(os.path.join(BASE_DIR, "votes.json"))
 auth    = TokenAuthStrategy()
 
 if not storage.load():
     storage.save(POLL.initial_votes())
 
-VOTED_COOKIE = "poll_voted"   # název cookie pro ochranu proti vícenásobnému hlasování
+VOTED_COOKIE  = "poll_voted"
+ADMIN_SESSION = "admin_ok"
 
 
-# ── Helpery (DRY) ─────────────────────────────────────────────────────────────
+# ── Security logging ──────────────────────────────────────────────────────────
+
+@app.after_request
+def log_every_request(response):
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
+    ip = ip.split(",")[0].strip()
+    log_request(
+        ip          = ip,
+        method      = request.method,
+        path        = request.path,
+        user_agent  = request.headers.get("User-Agent", ""),
+        status_code = response.status_code,
+        referrer    = request.headers.get("Referer", ""),
+    )
+    return response
+
+
+# ── Helpery ───────────────────────────────────────────────────────────────────
 
 def get_votes() -> dict[str, int]:
     votes = storage.load()
@@ -45,16 +61,18 @@ def total_votes(votes: dict[str, int]) -> int:
     return sum(votes.values())
 
 def has_voted() -> bool:
-    """Zkontroluje cookie — vrátí True pokud uživatel už hlasoval."""
     return request.cookies.get(VOTED_COOKIE) == "1"
 
+def is_admin() -> bool:
+    """Zkontroluje session — vrátí True pokud je uživatel přihlášen jako admin."""
+    return session.get(ADMIN_SESSION) is True
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+
+# ── Veřejné routes ────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
     if has_voted():
-        # Uživatel už hlasoval — ukaž mu výsledky přímo na hlavní stránce
         votes = get_votes()
         return render_template(
             "index.html", poll=POLL,
@@ -80,7 +98,6 @@ def vote():
     votes[option_id] += 1
     storage.save(votes)
 
-    # Nastav cookie na 1 rok — uložena v prohlížeči, ověřována serverem
     response = make_response(render_template(
         "index.html", poll=POLL,
         votes=votes, total=total_votes(votes),
@@ -104,23 +121,54 @@ def about():
     return render_template("about.html", active="about")
 
 
-@app.route("/restart")
-def restart():
-    # Získáme token přímo z instance auth strategie
-    # V reálné produkci bychom toto nedělali (security risk), ale pro účely dema/testování:
-    current_token = auth._token if hasattr(auth, "_token") else ""
-    return render_template("restart.html", token=current_token, active="restart")
+# ── Admin routes (chráněno tokenem + session) ─────────────────────────────────
 
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    """
+    Admin panel — přihlášení tokenem, reset hlasů, security log.
+    Token se NIKDY neposílá klientovi ani nezobrazuje.
+    """
+    if request.method == "POST":
+        action = request.form.get("action")
 
-@app.route("/reset", methods=["POST"])
-def reset():
-    token = request.form.get("token", "")
-    if auth.verify(token):
-        storage.reset(POLL.initial_votes())
-        flash("✅ Hlasy byly úspěšně vynulovány.", "success")
-    else:
-        flash("❌ Nesprávný token. Reset nebyl proveden.", "error")
-    return redirect(url_for("index"))
+        # Přihlášení
+        if action == "login":
+            token = request.form.get("token", "")
+            if auth.verify(token):
+                session[ADMIN_SESSION] = True
+                flash("✅ Přihlášení úspěšné.", "success")
+            else:
+                flash("❌ Nesprávný token.", "error")
+            return redirect(url_for("admin"))
+
+        # Odhlášení
+        if action == "logout":
+            session.pop(ADMIN_SESSION, None)
+            flash("Byl(a) jsi odhlášen(a).", "info")
+            return redirect(url_for("admin"))
+
+        # Reset hlasů — jen pro přihlášeného admina
+        if action == "reset":
+            if not is_admin():
+                flash("❌ Nejsi přihlášen(a).", "error")
+                return redirect(url_for("admin"))
+            storage.reset(POLL.initial_votes())
+            flash("✅ Hlasy byly úspěšně vynulovány.", "success")
+            return redirect(url_for("admin"))
+
+    # GET — zobraz panel nebo login formulář
+    logs  = load_logs(200) if is_admin() else []
+    stats = get_stats()    if is_admin() else {}
+    votes = get_votes()    if is_admin() else {}
+
+    return render_template("admin.html",
+                           authorized=is_admin(),
+                           logs=logs, stats=stats,
+                           votes=votes,
+                           total=total_votes(votes) if votes else 0,
+                           poll=POLL,
+                           active="")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
