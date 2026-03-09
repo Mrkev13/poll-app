@@ -34,6 +34,22 @@ ADMIN_SESSION = "admin_ok"
 
 # ── Security logging ──────────────────────────────────────────────────────────
 
+
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; "
+        "img-src 'self' https://www.google-analytics.com; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'none'"
+    )
+    return response
+
 @app.after_request
 def log_every_request(response):
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
